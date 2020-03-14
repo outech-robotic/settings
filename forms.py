@@ -28,3 +28,8 @@ class OrderForm(FlaskForm):
     Speed = FloatField('Speed', validators=[Optional()])
     Position = FloatField('Position', validators=[Optional()])
     Angle = FloatField('Angle', validators=[Optional()])
+
+
+class ServoForm(FlaskForm):
+    ArmPosition = FloatField('Arm position', validators=[Optional()])
+    ClipPosition = FloatField('Clip position', validators=[Optional()])

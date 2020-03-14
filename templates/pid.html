@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OUTech - PID configurator</title>
+    <script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"
+            integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I="
+            crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/index.css') }}">
+</head>
+<body>
+<div class="main">
+    <h1>PID Settings</h1>
+    <h3 class="sub">N'oublie pas de sauvegarder les coefficients...</h3>
+    <form method="POST" action="{{ url_for('pid_view') }}">
+        {{ form.hidden_tag() }}
+
+        <div class="block">
+            {% for field in form if field.widget.input_type != 'hidden' %}
+
+            {% if field.errors %}
+            <div style="color:red">
+                {% endif %}
+
+                <div class="cell">
+                    {{ field.label }}
+                    {{ field }}
+                </div>
+
+                {% if form.errors %}
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        <input type="submit" value="Submit">
+    </form>
+    <hr>
+    <form method="POST" action="{{ url_for('order_view') }}">
+        {{ form.hidden_tag() }}
+
+        <div class="block">
+            <table>
+                <tbody>
+                {% for field in order_form if field.widget.input_type != 'hidden' %}
+                <tr>
+                    <th> {{ field.label }} </th>
+                    <td> {{ field }} </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <input type="submit" value="Submit">
+    </form>
+    <hr>
+    <div class="container">
+        <button id="startStopButton" class="start-button">{{ 'Stop' if capture else 'Start' }} capture</button>
+        <button id="stop_button" class="emergency-button"><img
+            style="width: 25%"
+            src="https://www.cdiscount.com/pdt2/6/7/5/1/550x550/fie3700804174675/rw/lampe-gyrophare-projecteur-rouge-rotatif-effet-pom.jpg"/>
+        </button>
+    </div>
+    <hr>
+    <div class="container">
+        <span style="color:darkred"><strong>R</strong>ouge (<strong>R</strong>ed) = <strong>R</strong>ight (droite)<br/></span>
+        <span style="color:darkblue">B<strong>l</strong>ue (B<strong>l</strong>eu) = <strong>L</strong>eft (gauche)<br/></span>
+        <p>La consigne est en pointillés.</p>
+        <div id="speed" class="graph"></div>
+        <div id="pos" class="graph"></div>
+        <i>Florian, pour zoomer, maintiens cliqué sur ta souris et selectionne une partie du graphe. Bisous, ton petit fils.</i>
+    </div>
+    <hr>
+</div>
+
+<script>
+    var turn = 0;
+    var doABarrelRoll = function () {
+        turn++;
+        document.getElementById("dbr").remove();
+        var a = "-webkit-", b = 'transform:rotate(' + turn + 'turn);', c = 'transition:1s;';
+        document.head.innerHTML += '<style id="dbr">body{' + a + b + a + c + b + c
+    };
+
+    window.onload = function () {
+
+        function buildDataSeries(name, color, lineDashType, secondary) {
+            var dataSeries = {
+                type: "line",
+                markerSize: 0,
+                lineColor: color,
+                lineDashType: lineDashType,
+                name: "speed-" + name,
+                axisYType: secondary ? "secondary" : "primary",
+            };
+            dataSeries.dataPoints = [];
+
+            function addPoint(x, y) {
+                dataSeries.dataPoints.push({
+                    x: x,
+                    y: y,
+                });
+            }
+
+            function clear() {
+                dataSeries.dataPoints.length = 0;
+            }
+
+            return [dataSeries, clear, addPoint];
+        }
+
+        function startOnTimeZero(f) {
+            var firstTimeValue = undefined;
+
+            function g(x, y, setpoint) {
+                if (firstTimeValue === undefined) {
+                    firstTimeValue = x;
+                }
+                return f(x - firstTimeValue, y);
+            }
+
+            return g
+        }
+
+        function createGraph(name, colorLeft, colorRight) {
+            var [dataSeriesLeft, clearLeft, addLeft] = buildDataSeries("left", colorLeft, "solid", false);
+            var [dataSeriesRight, clearRight, addRight] = buildDataSeries("right", colorRight, "solid", false);
+
+            var [dataSeriesSetpointLeft, clearSetpointLeft, addSetpointLeft] = buildDataSeries("setpoint_left", "dark" + colorLeft, "longDash", false);
+            var [dataSeriesSetpointRight, clearSetpointRight, addSetpointRight] = buildDataSeries("setpoint_right", "dark" + colorRight, "longDash", false);
+
+            function clear() {
+                clearLeft();
+                clearRight();
+                clearSetpointLeft();
+                clearSetpointRight();
+                chart.render()
+            }
+
+            addLeft = startOnTimeZero(addLeft);
+            addRight = startOnTimeZero(addRight);
+            addSetpointLeft = startOnTimeZero(addSetpointLeft);
+            addSetpointRight = startOnTimeZero(addSetpointRight);
+
+            function addLeftPoint(x, y, setpoint) {
+                addLeft(x, y);
+                addSetpointLeft(x, setpoint);
+            }
+
+            function addRightPoint(x, y, setpoint) {
+                addRight(x, y);
+                addSetpointRight(x, setpoint);
+            }
+
+            var chart = new CanvasJS.Chart(name, {
+                zoomEnabled: true,
+                animationEnabled: false,
+                backgroundColor: "transparent",
+                title: {
+                    text: name,
+                },
+                axisY: {
+                    title: "left",
+                    includeZero: false,
+                    lineThickness: 1
+                },
+                axisY2: {
+                    title: "right",
+                    includeZero: false,
+                    lineThickness: 1,
+                },
+                data: [
+                    dataSeriesLeft,
+                    dataSeriesRight,
+                    dataSeriesSetpointLeft,
+                    dataSeriesSetpointRight,
+                ],
+            });
+
+            setInterval(renderChart, 1000 / 24); // 24 FPS for a cinematic experience.
+            function renderChart() {
+                chart.render()
+            }
+
+
+            return [addLeftPoint, addRightPoint, clear];
+        }
+
+        var [addLeftPos, addRightPos, clearPos] = createGraph("pos", "blue", "red");
+        var [addLeftSpeed, addRightSpeed, clearSpeed] = createGraph("speed", "blue", "red");
+
+        var capture = {{ 'true' if capture else 'false' }};
+        var button = document.getElementById("startStopButton")
+        button.onclick = function () {
+            capture = !capture;
+            if (capture) {
+                button.innerText = "Stop capture";
+                button.className = "stop-button";
+                clearSpeed();
+                clearPos();
+            } else {
+                button.innerText = "Start capture";
+                button.className = "start-button";
+            }
+        };
+
+        var socket = io.connect(null, {rememberTransport: false});
+        var stop_button = document.getElementById("stop_button");
+        var soundPath = 'https://www.myinstants.com/media/sounds/peproll1.mp3';
+        var sound = new Audio(soundPath);
+        stop_button.onclick = function () {
+            socket.emit("STOP", null);
+            //doABarrelRoll();
+            //sound.play();
+        };
+        socket.on('pos_left', function (msg) {
+            if (!capture) {
+                return
+            }
+            addLeftPos(msg[0], msg[1], msg[2])
+        });
+        socket.on('pos_right', function (msg) {
+            if (!capture) {
+                return
+            }
+            addRightPos(msg[0], msg[1], msg[2])
+        });
+        socket.on('speed_left', function (msg) {
+            if (!capture) {
+                return
+            }
+            addLeftSpeed(msg[0], msg[1], msg[2])
+        });
+        socket.on('speed_right', function (msg) {
+            if (!capture) {
+                return
+            }
+            addRightSpeed(msg[0], msg[1], msg[2])
+        });
+
+    }
+</script>
+</body>
+
+</html>

@@ -25,14 +25,15 @@ form,
     font-size: 20px;
 }
 
-h1 {
+h1,
+h2,
+h3 {
     text-align: center;
 }
 
 .sub {
     font-style: italic;
     color: #f05000;
-    text-align: center;
 }
 
 hr {
@@ -80,6 +81,7 @@ button[id="startStopButton"] {
     font-weight: bold;
     width: 180px;
     height: 40px;
+    cursor: pointer;
 }
 
 .stop-button,
@@ -116,4 +118,8 @@ input[type="submit"] {
     height: 500px; 
     display:inline-block;
     background-color: #f7f7ff;
+}
+
+.btn-group:not(:last-child) {
+    border-right: none;
 }

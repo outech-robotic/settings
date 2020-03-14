@@ -107,10 +107,10 @@ def get_saved_pid_form():
 
 
 def register_views(app: Flask, socketio: SocketIO, interface: InterfaceAdapter):
-    @app.route('/pid', methods=['GET', 'POST'])
+    @app.route('/pid-settings/pid', methods=['GET', 'POST'])
     def pid_view():
         if request.method == 'GET':
-            return redirect('/')
+            return redirect('/pid-settings')
 
         form = AllPIDForms()
         if form.validate_on_submit():
@@ -126,16 +126,16 @@ def register_views(app: Flask, socketio: SocketIO, interface: InterfaceAdapter):
             )
 
         return render_template(
-            'index.html',
+            'pid.html',
             form=form,
             order_form=OrderForm(),
             capture=False,
         )
 
-    @app.route('/order', methods=['GET', 'POST'])
+    @app.route('/pid-settings/order', methods=['GET', 'POST'])
     def order_view():
         if request.method == 'GET':
-            return redirect('/')
+            return redirect('/pid-settings')
 
         form = OrderForm()
         if form.validate_on_submit():
@@ -146,19 +146,25 @@ def register_views(app: Flask, socketio: SocketIO, interface: InterfaceAdapter):
             )
 
         return render_template(
-            'index.html',
+            'pid.html',
             form=get_saved_pid_form(),
             order_form=form,
             capture=True,
         )
 
-    @app.route('/')
-    def index():
+    @app.route('/pid-settings')
+    def pid_settings_view():
         return render_template(
-            'index.html',
+            'pid.html',
             form=get_saved_pid_form(),
             order_form=OrderForm(),
             capture=False,
+        )
+
+    @app.route('/')
+    def index():
+        return render_template(
+            'index.html'
         )
 
     @socketio.on('STOP')
