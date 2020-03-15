@@ -14,12 +14,13 @@ CAN_BOARD_ID_WIDTH  = 4
 CAN_MSG_WIDTH       = 9
 
 CAN_BOARD_ID_MOTOR  = 15
-# TODO : set board ids
-CAN_BOARD_ID_LE_ARM = 0
-CAN_BOARD_ID_CL_ARM = 0
-CAN_BOARD_ID_CE_ARM = 0
-CAN_BOARD_ID_CR_ARM = 0
-CAN_BOARD_ID_RI_ARM = 0
+
+CAN_BOARD_ID_LE_ARM = 1
+CAN_BOARD_ID_CL_ARM = 2
+CAN_BOARD_ID_CE_ARM = 3
+CAN_BOARD_ID_CR_ARM = 4
+CAN_BOARD_ID_RI_ARM = 5
+#TODO ADD OTHER ACTUATORS (PUMP, DOORS, LEFT/RIGHT STICKS FOR WINDSOCKS)
 
 CAN_CHANNEL_MOTOR   = 0b00
 CAN_CHANNEL_SERVO   = 0b11
@@ -51,11 +52,11 @@ PID_RIGHT_POS = 3
 COD_UPDATE_FREQ = 100  # Hz, encoder positions sent from Motion control board each seconds
 
 # Formatters for data packing
-fmt_motor_set_speed = struct.Struct('<ll')  # 32b + 32b signe
-fmt_motor_cod_pos = struct.Struct('<ll')  # 32b + 32b signe
-fmt_motor_move = struct.Struct('<Bi')
-fmt_motor_set_pid = struct.Struct('<Bi')  # 8b + 32b non signes
-fmt_motor_lim = struct.Struct('<HHHH')
+fmt_motor_set_speed = struct.Struct('<ll')  # 32b + 32b signe(left, right)
+fmt_motor_cod_pos = struct.Struct('<ll')  # 32b + 32b signed(left, right)
+fmt_motor_move = struct.Struct('<Bi')     # 1 byte sets the mode (0 = translation, 1 = rotation), 32 signed bits for ticks
+fmt_motor_set_pid = struct.Struct('<Bi')  # 8b(id) + 32b unsigned(PID*65536)
+fmt_motor_lim = struct.Struct('<HHHH')    # 4x16b unsigned limits (translation speed, rotation speed, wheel speed, wheel acceleration)
 
 # Physical constants of the robot
 WHEEL_DIAMETER = 73.7  # en mm ; 2400 ticks par tour donc par 2*pi*74 mm
