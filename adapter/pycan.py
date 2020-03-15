@@ -12,8 +12,19 @@ from views import InterfaceAdapter, PID, Cap, ArmAngles
 
 CAN_BOARD_ID_WIDTH  = 4
 CAN_MSG_WIDTH       = 9
+
 CAN_BOARD_ID_MOTOR  = 15
+# TODO : set board ids
+CAN_BOARD_ID_LE_ARM = 0
+CAN_BOARD_ID_CL_ARM = 0
+CAN_BOARD_ID_CE_ARM = 0
+CAN_BOARD_ID_CR_ARM = 0
+CAN_BOARD_ID_RI_ARM = 0
+
 CAN_CHANNEL_MOTOR   = 0b00
+CAN_CHANNEL_SERVO   = 0b11
+
+# TODO : add servo orders
 CAN_MSG_STOP        = 0b00000  # Stops robot on the spot, resetting all errors of PIDs
 CAN_MSG_POS         = 0b00010  # orders a movement : 1 byte for movement type, and 32 bits signed ticks to move
 CAN_MSG_SPEED       = 0b10000  # orders the movement of both wheels at constant speed (2x32bits signed, left and right encoder speeds)
@@ -25,7 +36,6 @@ CAN_MSG_MCS_MODE    = 0b10111  # Sets motion control mode : data: 1 byte: bit 0 
 
 CAN_MSG_DEBUG_DATA  = 0b10001  # 32b 32b debug data
 CAN_MSG_HEARTBEAT   = 0b10010
-
 
 MCS_MODE_SPEED       = [0b001]
 MCS_MODE_TRANSLATION = [0b011]
