@@ -7,8 +7,12 @@
 </head>
 <body>
     <div class="main">
-        <h1>Select a tool</h1>
-        <a href="{{ url_for('pid_settings_view') }}">PID Settings</a>
+        <h1>OUTech Settings</h1>
+        <h3>Select a tool</h3>
+        <div class="menu">
+            <a class="menu-item" href="{{ url_for('pid_settings_view') }}">PID</a>
+            <a class="menu-item" href="{{ url_for('servo_settings_view') }}">Servo</a>
+        </div>
     </div>
 </body>
 </html>

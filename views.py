@@ -6,9 +6,10 @@ from typing import Optional
 from flask import request, redirect, render_template, Flask
 from flask_socketio import SocketIO
 
-from forms import AllPIDForms, OrderForm
+from forms import AllPIDForms, OrderForm, AllServoForms
 
-FILE_NAME = 'pid_coef.json'
+PID_FILE_NAME = 'pid_coef.json'
+SER_FILE_NAME = 'servo_angles.json'
 
 
 @dataclass
@@ -24,6 +25,13 @@ class Cap:
     SpeedRotation   : float
     SpeedWheel      : float
     AccelWheel      : float
+
+
+@dataclass
+class ArmAngles:
+    CircularTranslation : Optional[float]
+    VerticalTranslation : Optional[float]
+    Clip                : Optional[float]
 
 
 def to_pid(tbl: dict) -> PID:
@@ -74,13 +82,22 @@ class InterfaceAdapter(ABC):
         """ Order submission. """
 
     @abstractmethod
+    def on_servo_submission(self,
+                            left: ArmAngles,
+                            centerLeft: ArmAngles,
+                            center: ArmAngles,
+                            centerRight: ArmAngles,
+                            right: ArmAngles):
+        """ Servo submission. """
+
+    @abstractmethod
     def on_stop_button(self):
         """ On stop button pressed."""
 
 
 def get_pid_coefs():
     try:
-        with open(FILE_NAME, "r") as f:
+        with open(PID_FILE_NAME, "r") as f:
             return json.loads(f.read())
     except FileNotFoundError:
         return {
@@ -97,9 +114,32 @@ def get_pid_coefs():
         }
 
 
+def get_servo_angles():
+    try:
+        with open(SER_FILE_NAME, "r") as f:
+            return json.loads(f.read())
+    except FileNotFoundError:
+        return {
+            'Left': {'CircularTranslation': 0.0, 'VerticalTranslation': 0.0, 'Clip': 0.0},
+            'CenterLeft': {'CircularTranslation': 0.0, 'VerticalTranslation': 0.0, 'Clip': 0.0},
+            'Center': {'CircularTranslation': 0.0, 'VerticalTranslation': 0.0, 'Clip': 0.0},
+            'CenterRight': {'CircularTranslation': 0.0, 'VerticalTranslation': 0.0, 'Clip': 0.0},
+            'Right': {'CircularTranslation': 0.0, 'VerticalTranslation': 0.0, 'Clip': 0.0},
+        }
+
+
 def get_saved_pid_form():
     form = AllPIDForms()
     for subform, data in get_pid_coefs().items():
+        if isinstance(data, dict):
+            for field, value in data.items():
+                form[subform][field].data = value
+    return form
+
+
+def get_saved_servo_form():
+    form = AllServoForms()
+    for subform, data in get_servo_angles().items():
         if isinstance(data, dict):
             for field, value in data.items():
                 form[subform][field].data = value
@@ -114,7 +154,7 @@ def register_views(app: Flask, socketio: SocketIO, interface: InterfaceAdapter):
 
         form = AllPIDForms()
         if form.validate_on_submit():
-            with open(FILE_NAME, "w") as f:
+            with open(PID_FILE_NAME, "w") as f:
                 f.write(json.dumps(form.data, indent=2))
 
             interface.on_pid_submission(
@@ -159,6 +199,33 @@ def register_views(app: Flask, socketio: SocketIO, interface: InterfaceAdapter):
             form=get_saved_pid_form(),
             order_form=OrderForm(),
             capture=False,
+        )
+
+    @app.route('/servo-settings/servo', methods=['GET', 'POST'])
+    def servo_view():
+        if request.method == 'GET':
+            return redirect('/servo-settings')
+
+        form = AllServoForms()
+        if form.validate_on_submit():
+            interface.on_servo_submission(
+                left=form.data['Left'],
+                centerLeft=form.data['CenterLeft'],
+                center=form.data['Center'],
+                centerRight=form.data['CenterRight'],
+                right=form.data['Right']
+            )
+
+        return render_template(
+            'servo.html',
+            form=get_saved_servo_form()
+        )
+
+    @app.route('/servo-settings')
+    def servo_settings_view():
+        return render_template(
+            'servo.html',
+            form=get_saved_servo_form()
         )
 
     @app.route('/')

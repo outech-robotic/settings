@@ -31,5 +31,14 @@ class OrderForm(FlaskForm):
 
 
 class ServoForm(FlaskForm):
-    ArmPosition = FloatField('Arm position', validators=[Optional()])
-    ClipPosition = FloatField('Clip position', validators=[Optional()])
+    CircularTranslation = FloatField('Arm pos.', validators=[Optional()])
+    VerticalTranslation = FloatField('Clip alt.', validators=[Optional()])
+    Clip = FloatField('Clip pos.', validators=[Optional()])
+
+
+class AllServoForms(FlaskForm):
+    Left = FormField(ServoForm)
+    CenterLeft = FormField(ServoForm)
+    Center = FormField(ServoForm)
+    CenterRight = FormField(ServoForm)
+    Right = FormField(ServoForm)

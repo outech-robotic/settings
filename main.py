@@ -12,7 +12,7 @@ import can
 from flask import Flask
 from flask_socketio import SocketIO
 
-from views import register_views, InterfaceAdapter, PID, Cap
+from views import register_views, InterfaceAdapter, PID, Cap, ArmAngles
 
 CAN_BOARD_ID_WIDTH  = 4
 CAN_MSG_WIDTH       = 9
@@ -235,6 +235,11 @@ class CANAdapter(InterfaceAdapter):
         self.setpoint_speed = 0.0
         send_packet(CAN_CHANNEL_MOTOR, CAN_MSG_STOP, CAN_BOARD_ID_MOTOR, [])
 
+    def on_servo_submission(self, left: ArmAngles, centerLeft: ArmAngles, 
+                            center: ArmAngles, centerRight: ArmAngles, right: ArmAngles) -> None:
+        # TODO
+        print("not implemented yet")
+
 
 class RandomAdapter(InterfaceAdapter):
     def on_stop_button(self):
@@ -263,6 +268,10 @@ class RandomAdapter(InterfaceAdapter):
             print("delayed order submission")
 
         Timer(2, send_order).start()
+
+    def on_servo_submission(self, left: ArmAngles, centerLeft: ArmAngles, 
+                            center: ArmAngles, centerRight: ArmAngles, right: ArmAngles) -> None:
+        print("send")
 
 
 if __name__ == '__main__':

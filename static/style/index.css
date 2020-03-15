@@ -10,6 +10,8 @@ body {
 .main {
     border-radius: 5px;
     background-color: #f7f7ff;
+    padding: 10px;
+    text-align: center;
 }
 
 form,
@@ -72,7 +74,8 @@ input[type="text"]:focus {
 }
 
 input[type="submit"],
-button[id="startStopButton"] {
+button[id="startStopButton"],
+.button-link {
     margin-top: 6px;
     margin-bottom: 6px;
     border: 0 solid transparent;
@@ -120,6 +123,25 @@ input[type="submit"] {
     background-color: #f7f7ff;
 }
 
-.btn-group:not(:last-child) {
-    border-right: none;
+.menu {
+    display: inline-block;
+    background-color: #444;
+    border-radius: 4px;
+    height: 40px;
+    position: relative;
+}
+
+.menu-item {
+    padding: 5px 20px;
+    color: #ffa027;
+    border: none;
+    text-decoration: none;
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.menu-item:hover {
+    background-color: #555;
+    border-radius: 4px;
 }

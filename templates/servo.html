@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OUTech - Configurator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/index.css') }}">
+</head>
+<body>
+    <div class="main">
+        <h1>Servo</h1>
+        <h3 class="sub">N'oublie pas de sauvegarder les coefficients...</h3>
+        <form method="POST" action="{{ url_for('servo_view') }}">
+            {{ form.hidden_tag() }}
+    
+            <div class="block">
+                {% for field in form if field.widget.input_type != 'hidden' %}
+    
+                {% if field.errors %}
+                <div style="color:red">
+                    {% endif %}
+    
+                    <div class="cell">
+                        {{ field.label }}
+                        {{ field }}
+                    </div>
+    
+                    {% if form.errors %}
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            <input type="submit" value="Submit">
+        </form>
+    </div>
+</body>
+</html>
