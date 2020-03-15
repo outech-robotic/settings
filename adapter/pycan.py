@@ -25,19 +25,25 @@ CAN_BOARD_ID_RI_ARM = 5
 CAN_CHANNEL_MOTOR   = 0b00
 CAN_CHANNEL_SERVO   = 0b11
 
-# TODO : add servo orders
+# MOTION CONTROL MESSAGES
 CAN_MSG_STOP        = 0b00000  # Stops robot on the spot, resetting all errors of PIDs
 CAN_MSG_POS         = 0b00010  # orders a movement : 1 byte for movement type, and 32 bits signed ticks to move
 CAN_MSG_SPEED       = 0b10000  # orders the movement of both wheels at constant speed (2x32bits signed, left and right encoder speeds)
-CAN_SPEED_ACCEL_LIM = 0b10011
+CAN_MSG_SET_LIMITS  = 0b10011  # 4x16bit unsigned limits on movement (translation speed, rotation speed, wheel speed, wheel acceleration)
 CAN_KP_ID           = 0b10100  # sets proportionnal constant of PID of ID at first byte of data, value is the following 32 bits (unsigned, 65535 * value in floating point of KP)
 CAN_KI_ID           = 0b10101  # same for integral constant
 CAN_KD_ID           = 0b10110  # and derivative
 CAN_MSG_MCS_MODE    = 0b10111  # Sets motion control mode : data: 1 byte: bit 0 = speed mode on/off, bit 1 = position mode on/off
 
+# DEBUG/HL MESSAGES
 CAN_MSG_DEBUG_DATA  = 0b10001  # 32b 32b debug data
-CAN_MSG_HEARTBEAT   = 0b10010
+CAN_MSG_HEARTBEAT   = 0b10010  # Periodic heartbeat message to high level board
 
+# SERVO ORDERS
+CAN_MSG_SERVO_POS   = 0b00000  # Move servo(with id) at angle, for a board : 8b + 8b unsigned
+
+# SENSOR ORDERS
+CAN_MSG_SENSOR_SICK = 0b00000  # Periodic message from sensor board, 4x16b unsigned (left-front, left-back, right-front, right-back)
 MCS_MODE_SPEED       = [0b001]
 MCS_MODE_TRANSLATION = [0b011]
 MCS_MODE_ROTATION    = [0b101]
@@ -59,8 +65,8 @@ fmt_motor_set_pid = struct.Struct('<Bi')  # 8b(id) + 32b unsigned(PID*65536)
 fmt_motor_lim = struct.Struct('<HHHH')    # 4x16b unsigned limits (translation speed, rotation speed, wheel speed, wheel acceleration)
 
 # Physical constants of the robot
-WHEEL_DIAMETER = 73.7  # en mm ; 2400 ticks par tour donc par 2*pi*74 mm
-DISTANCE_BETWEEN_WHEELS = 365.0  # en mm
+WHEEL_DIAMETER = 73.6  # en mm ; 2400 ticks par tour donc par 2*pi*74 mm
+DISTANCE_BETWEEN_WHEELS = 363.0  # en mm
 TICKS_PER_TURN = 2400.0
 MM_TO_TICK = TICKS_PER_TURN / (pi * WHEEL_DIAMETER)
 TICK_TO_MM = (pi * WHEEL_DIAMETER) / TICKS_PER_TURN
@@ -108,7 +114,7 @@ class CANAdapter(InterfaceAdapter):
             with can.interface.Bus(channel='can0', bustype='socketcan', bitrate=1000000) as bus:
                 for message in bus:
                     # Encoder position
-                    if (message.arbitration_id >> 5) == 0b000011:
+                    if (message.arbitration_id >> 5) == 0b0000011:
                         posl, posr = fmt_motor_cod_pos.unpack(message.data)
                         posl, posr = posl * TICK_TO_MM, posr * TICK_TO_MM
                         speedl, speedr = ((posl - self.cod_last_left)  * COD_UPDATE_FREQ,
@@ -189,7 +195,7 @@ class CANAdapter(InterfaceAdapter):
                     fmt_motor_set_pid.pack(PID_RIGHT_SPEED, int(speed_right.i)))
         send_packet(CAN_CHANNEL_MOTOR, CAN_KD_ID, CAN_BOARD_ID_MOTOR,
                     fmt_motor_set_pid.pack(PID_RIGHT_SPEED, int(speed_right.d)))
-        send_packet(CAN_CHANNEL_MOTOR, CAN_SPEED_ACCEL_LIM, CAN_BOARD_ID_MOTOR, fmt_motor_lim.pack(int(cap.SpeedTranslation*MM_TO_TICK), int(cap.SpeedRotation*MM_TO_TICK), int(cap.SpeedWheel*MM_TO_TICK), int(cap.AccelWheel*MM_TO_TICK)))
+        send_packet(CAN_CHANNEL_MOTOR, CAN_MSG_SET_LIMITS, CAN_BOARD_ID_MOTOR, fmt_motor_lim.pack(int(cap.SpeedTranslation*MM_TO_TICK), int(cap.SpeedRotation*MM_TO_TICK), int(cap.SpeedWheel*MM_TO_TICK), int(cap.AccelWheel*MM_TO_TICK)))
 
     def on_order_submission(self, speed: Optional[float], position: Optional[float],
                             angle: Optional[float]):
